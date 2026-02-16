@@ -35,7 +35,7 @@ public final class Coordinator {
     }
 
     private static VersionedValue selectWinnerLww(@NonNull List<DirectReadResponse> responses) {
-        // Last-Write-Wins sul timestamp. In caso di null, considera timestamp -inf.
+        // Last-Write-Wins based on timestamp. If null, consider timestamp as -infinity.
         return responses.stream()
                 .map(DirectReadResponse::valueOrNull)
                 .filter(Objects::nonNull)
@@ -83,7 +83,7 @@ public final class Coordinator {
             return CompletableFuture.failedFuture(new IllegalArgumentException("CL > RF"));
         }
 
-        // 1. choose direct target ("faster" replica) and digest targets to get to CL
+        // 1. Choose direct target ("fastest" replica) and digest targets to satisfy Consistency Level (CL)
         NodeId directReplica = planner.pickFastestReplica(replicas);
         List<NodeId> digestReplicas = pickOtherReplicas(replicas, directReplica, required - 1);
 
@@ -94,7 +94,7 @@ public final class Coordinator {
                 .map(r -> withTimeout(client.digestRead(r, key), readTimeout))
                 .toList();
 
-        // wait direct + (CL-1) digest
+        // Wait for direct response + (CL-1) digest responses
         CompletableFuture<Void> digestsAll = CompletableFuture.allOf(digestFs.toArray(new CompletableFuture[0]));
 
         return directF.thenCombine(digestsAll, (direct, ignore) -> {
@@ -120,32 +120,34 @@ public final class Coordinator {
         boolean allMatch = pair.digests.stream()
                 .allMatch(d -> Arrays.equals(d.digest(), directDigest));
         if (allMatch) {
-            // no read repair needed
+            // Data is consistent across replicas; no read repair needed
             return CompletableFuture.completedFuture(directValue);
         }
 
-        // Mismatch: escalation a direct read sulle repliche che avevano risposto con digest
+        // Mismatch detected: escalate to direct reads for replicas that initially provided digests
         List<CompletableFuture<DirectReadResponse>> extraDirectFs = digestReplicas.stream()
                 .map(r -> withTimeout(client.directRead(r, key), readTimeout))
                 .toList();
 
         return CompletableFuture.allOf(extraDirectFs.toArray(new CompletableFuture[0]))
                 .thenCompose(v -> {
-                    List<DirectReadResponse> extra = extraDirectFs.stream().map(CompletableFuture::join).toList();
+                    List<DirectReadResponse> extra = extraDirectFs.stream()
+                            .map(CompletableFuture::join)
+                            .toList();
 
-                    // Confronta versioni: includi anche la direct originale
+                    // Compare versions: include the original direct response in the resolution
                     List<DirectReadResponse> all = new ArrayList<>();
                     all.add(direct);
                     all.addAll(extra);
 
                     VersionedValue winner = selectWinnerLww(all);
 
-                    // Avvia repair verso chi è stale (digest mismatch implica potenziale divergenza)
-                    // Cassandra può riparare solo le repliche lette (come nel tuo esempio).
+                    // Trigger repair for stale replicas (digest mismatch implies potential divergence)
+                    // Like Cassandra, this only repairs replicas involved in this specific read.
                     CompletableFuture<Void> repairs = triggerRepairs(key, winner, all);
 
-                    // Rispondi al client senza aspettare per forza tutte le repair (scelta tipica).
-                    // Se vuoi essere più "forte", puoi fare `repairs.thenApply(...)`.
+                    // Respond to the client immediately without necessarily waiting for repairs to finish (typical behavior).
+                    // To ensure repairs complete before responding, use `repairs.thenApply(...)`.
                     repairs.exceptionally(ex -> null);
                     return CompletableFuture.completedFuture(winner);
                 });
