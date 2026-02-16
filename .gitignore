@@ -34,7 +34,7 @@
 *.tar.gz
 *.war
 *.zip
-*/.idea/
+.idea/
 /.nb-gradle/
 /dist/
 /nbbuild/
