@@ -1,12 +1,5 @@
 version: "3.8"
 
-networks:
-    cnet:
-        driver: bridge
-        ipam:
-            config:
-                - subnet: 172.30.0.0/24
-
 services:
     cassandra1:
         image: cassandra:5.0.6
@@ -32,6 +25,8 @@ services:
 
             MAX_HEAP_SIZE: "512M"
             HEAP_NEWSIZE: "128M"
+        volumes:
+            - cass1_data:/var/lib/cassandra
         ports:
             - "9042:9042"
         ulimits:
@@ -44,7 +39,7 @@ services:
             interval: 15s
             timeout: 10s
             retries: 40
-            start_period: 60s
+            start_period: 30s
 
     cassandra2:
         image: cassandra:5.0.6
@@ -70,6 +65,8 @@ services:
 
             MAX_HEAP_SIZE: "512M"
             HEAP_NEWSIZE: "128M"
+        volumes:
+            - cass2_data:/var/lib/cassandra
         ports:
             - "9043:9042"
         ulimits:
@@ -82,14 +79,14 @@ services:
             interval: 15s
             timeout: 10s
             retries: 40
-            start_period: 60s
+            start_period: 30s
 
     cassandra3:
         image: cassandra:5.0.6
         container_name: cassandra3
         hostname: cassandra3
         depends_on:
-            cassandra1:
+            cassandra2:
                 condition: service_healthy
         networks:
             cnet:
@@ -108,6 +105,8 @@ services:
 
             MAX_HEAP_SIZE: "512M"
             HEAP_NEWSIZE: "128M"
+        volumes:
+            - cass3_data:/var/lib/cassandra
         ports:
             - "9044:9042"
         ulimits:
@@ -120,4 +119,16 @@ services:
             interval: 15s
             timeout: 10s
             retries: 40
-            start_period: 60s
+            start_period: 30s
+
+networks:
+    cnet:
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 172.30.0.0/24
+
+volumes:
+    cass1_data:
+    cass2_data:
+    cass3_data:
