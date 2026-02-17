@@ -15,7 +15,7 @@ import java.util.concurrent.ForkJoinPool;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-class MainTest {
+class ReadRepairTest {
 
     @NonNull
     private Map<NodeId, Long> getNodeIdLongMap(NodeId n1, NodeId n2, NodeId n3) {

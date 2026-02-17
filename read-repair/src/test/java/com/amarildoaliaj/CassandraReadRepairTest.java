@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-class CassandraReadRepairIT {
+class CassandraReadRepairTest {
 
     private static final String KS = "rr_demo";
     private static final String TABLE = "kv";
