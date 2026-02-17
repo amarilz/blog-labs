@@ -3,7 +3,6 @@ package com.amarildoaliaj;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-
 @AllArgsConstructor
 @Getter
 public enum ConsistencyLevel {
