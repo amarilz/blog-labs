@@ -29,6 +29,7 @@ subprojects {
 
     dependencies {
         implementation("org.jetbrains:annotations:15.0")
+        implementation("org.jspecify:jspecify:1.0.0")
 
         compileOnly("org.projectlombok:lombok:1.18.42")
         annotationProcessor("org.projectlombok:lombok:1.18.42")
@@ -43,4 +44,6 @@ subprojects {
     tasks.test {
         useJUnitPlatform()
     }
+
+    tasks.register("prepareKotlinBuildScriptModel") {}
 }
