@@ -1,0 +1,127 @@
+version: "3.9"
+
+services:
+    worker1:
+        build: .
+        container_name: citus_worker1
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: appdb
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5433:5432"
+        volumes:
+            - worker1_data:/var/lib/postgresql/data
+            - ./worker/init:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        networks:
+            - citus_net
+
+    worker2:
+        build: .
+        container_name: citus_worker2
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: appdb
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5434:5432"
+        volumes:
+            - worker2_data:/var/lib/postgresql/data
+            - ./worker/init:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        networks:
+            - citus_net
+
+    worker3:
+        build: .
+        container_name: citus_worker3
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: appdb
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5435:5432"
+        volumes:
+            - worker3_data:/var/lib/postgresql/data
+            - ./worker/init:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        networks:
+            - citus_net
+
+    worker4:
+        build: .
+        container_name: citus_worker4
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: appdb
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5436:5432"
+        volumes:
+            - worker4_data:/var/lib/postgresql/data
+            - ./worker/init:/docker-entrypoint-initdb.d
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U postgres -d appdb" ]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        networks:
+            - citus_net
+
+    coordinator:
+        build: .
+        container_name: citus_coordinator
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+            POSTGRES_DB: appdb
+            POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+            - "5432:5432"
+        volumes:
+            - coordinator_data:/var/lib/postgresql/data
+            - ./coordinator/init:/docker-entrypoint-initdb.d
+        depends_on:
+            worker1:
+                condition: service_healthy
+            worker2:
+                condition: service_healthy
+            worker3:
+                condition: service_healthy
+            worker4:
+                condition: service_healthy
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+            interval: 5s
+            timeout: 5s
+            retries: 20
+        networks:
+            - citus_net
+
+volumes:
+    coordinator_data:
+    worker1_data:
+    worker2_data:
+    worker3_data:
+    worker4_data:
+
+networks:
+    citus_net:
+        driver: bridge
